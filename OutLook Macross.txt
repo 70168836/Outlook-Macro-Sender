@@ -1,0 +1,77 @@
+Sub SendFilesIndividually()
+    ' Объявляем переменные
+    Dim olApp As Outlook.Application
+    Dim olMail As Outlook.MailItem
+    Dim folderPath As String
+    Dim fileName As String
+    Dim filePath As String
+    Dim fs As Object
+
+    ' Укажи путь к папке с файлами, которые нужно отправить
+    folderPath = "C:\Путь\К\Папке\"
+
+    ' Убедимся, что путь заканчивается слешем
+    If Right(folderPath, 1) <> "\" Then
+        folderPath = folderPath & "\"
+    End If
+
+    ' Проверяем, существует ли папка
+    Set fs = CreateObject("Scripting.FileSystemObject")
+    If Not fs.FolderExists(folderPath) Then
+        MsgBox "Папка не найдена: " & folderPath, vbExclamation
+        Exit Sub
+    End If
+
+    ' Получаем первый файл из папки
+    fileName = Dir(folderPath & "*.*")
+
+    ' Если файлов нет — выходим
+    If fileName = "" Then
+        MsgBox "Файлы не найдены. Отправка отменена.", vbInformation
+        Exit Sub
+    End If
+
+    ' Запускаем цикл по всем файлам
+    Do While fileName <> ""
+        Set olApp = Outlook.Application
+        Set olMail = olApp.CreateItem(olMailItem)
+
+        filePath = folderPath & fileName
+
+        With olMail
+            ' Условие: если имя файла содержит слово "лифт"
+            If LCase(fileName) Like "*лифт*" Then
+                .To = "адрес_для_лифт@почта.ру"
+                .CC = "копия_для_лифт@почта.ру"
+            Else
+                .To = "основной1@почта.ру; основной2@почта.ру; основной3@почта.ру"
+                .CC = "копия_для_остальных@почта.ру"
+            End If
+
+            ' Устанавливаем тему и тело письма
+            .Subject = fileName
+            .Body = "Во вложении файл: " & fileName
+
+            ' Прикрепляем сам файл
+            .Attachments.Add filePath
+
+            ' Отправляем письмо
+            .Send
+        End With
+
+        ' Получаем следующий файл
+        fileName = Dir
+    Loop
+
+    ' Уведомление после завершения
+    MsgBox "Письма успешно отправлены.", vbInformation
+End Sub
+
+' Привязка к встрече
+Private Sub Application_Reminder(ByVal Item As Object)
+    If Item.MessageClass = "IPM.Appointment" Then
+        If Item.Subject = "Автоматическая отправка файлов" Then
+            Call SendFilesIndividually
+        End If
+    End If
+End Sub
